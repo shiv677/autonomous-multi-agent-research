@@ -47,7 +47,7 @@ def safe_eval_math(expr: str) -> float:
     def _eval(node: ast.AST) -> float:
         if isinstance(node, ast.Expression):
             return _eval(node.body)
-        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
             return float(node.value)
         if isinstance(node, ast.BinOp):
             op_type = type(node.op)
@@ -55,6 +55,8 @@ def safe_eval_math(expr: str) -> float:
                 raise ValueError(f"Unsupported math operator: {op_type.__name__}")
             left = _eval(node.left)
             right = _eval(node.right)
+            if op_type is ast.Pow and abs(right) > 1000:
+                raise ValueError(f"Exponent {right} exceeds maximum allowed magnitude (1000)")
             return SAFE_OPERATORS[op_type](left, right)
         if isinstance(node, ast.UnaryOp):
             op_type = type(node.op)
@@ -243,8 +245,11 @@ class ConflictReferee:
 
                     # Check opposing stance markers
                     content_a, content_b = item_a.content.lower(), item_b.content.lower()
-                    if ("increase" in content_a and "decrease" in content_b) or (
-                        "superior" in content_a and "inferior" in content_b
+                    if (
+                        ("increase" in content_a and "decrease" in content_b)
+                        or ("decrease" in content_a and "increase" in content_b)
+                        or ("superior" in content_a and "inferior" in content_b)
+                        or ("inferior" in content_a and "superior" in content_b)
                     ):
                         divergence = True
 
@@ -402,9 +407,12 @@ class ResearchEngine:
             refinement_attempts += 1
             # Refine by filtering out ungrounded findings
             findings = [f for f in findings if f not in verification.missing_aspects]
+            clean_query = dag.query
+            for flag in ["unverified claim", "hypothetical breakthrough", "fake citation"]:
+                clean_query = clean_query.replace(flag, "").replace(flag.title(), "").strip()
             summary = (
-                f"Refined research on '{dag.query}' (Pass {refinement_attempts}): "
-                f"Grounded on verified evidence. Addressed critique: {verification.critique}"
+                f"Refined research on '{clean_query}' (Pass {refinement_attempts}): "
+                f"Grounded on {len(findings)} verified findings after filtering unsupported claims."
             )
             verification = self.verify_report(summary, findings, self.memory)
 

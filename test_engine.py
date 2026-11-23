@@ -247,3 +247,45 @@ def test_end_to_end_research_engine_execution():
     assert report.verification is not None
     assert report.verification.is_valid is True
     assert report.overall_confidence > 0.7
+
+
+def test_refinement_loop_recovers_from_hallucination_marker():
+    """Verify refinement loop removes speculative markers without re-injecting them from critique."""
+    engine = ResearchEngine()
+    dag = engine.build_default_dag("FlashAttention unverified claim")
+    report = engine.execute_plan(dag)
+    assert report.verification is not None
+    assert report.verification.is_valid is True
+    assert len(report.verification.hallucinations) == 0
+
+
+def test_conflict_referee_symmetric_stance_detection():
+    """Verify stance conflict detection is order-independent when 'decrease' precedes 'increase'."""
+    referee = ConflictReferee()
+    items = [
+        MemoryItem(
+            key="stance_a",
+            content="Memory bandwidth overhead will decrease with tiling.",
+            source_agent="agent_1",
+            confidence=0.80,
+            metadata={"topic": "bandwidth"},
+        ),
+        MemoryItem(
+            key="stance_b",
+            content="Memory bandwidth overhead will increase with sequence length.",
+            source_agent="agent_2",
+            confidence=0.90,
+            metadata={"topic": "bandwidth"},
+        ),
+    ]
+    conflicts = referee.arbitrate(items)
+    assert len(conflicts) == 1
+    assert conflicts[0].topic == "bandwidth"
+
+
+def test_safe_eval_math_rejects_booleans_and_huge_exponents():
+    """Verify safe_eval_math rejects boolean literals and oversized exponents."""
+    with pytest.raises(ValueError):
+        safe_eval_math("True + 1")
+    with pytest.raises(ValueError):
+        safe_eval_math("2 ** 1001")

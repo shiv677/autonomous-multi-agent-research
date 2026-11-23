@@ -138,17 +138,17 @@ sequenceDiagram
 
 Run default end-to-end research execution:
 ```bash
-python projects/autonomous_multi_agent_research/main.py
+python main.py
 ```
 
 Run with conflict arbitration simulation:
 ```bash
-python projects/autonomous_multi_agent_research/main.py --simulate-conflict
+python main.py --simulate-conflict
 ```
 
 Run latency benchmark across 50 iterations:
 ```bash
-python projects/autonomous_multi_agent_research/main.py --benchmark
+python main.py --benchmark
 ```
 
 ### Benchmark Results (50 iterations)
@@ -173,6 +173,6 @@ The Pytest test suite (`test_engine.py`) enforces 9 comprehensive assertions and
 
 To run the suite:
 ```bash
-pytest projects/autonomous_multi_agent_research/test_engine.py -v
+pytest test_engine.py -v
 ```
 All 9 tests pass in ~0.10s.
